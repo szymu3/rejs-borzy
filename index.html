@@ -630,8 +630,15 @@
     const size = document.querySelector('input[name="size"]:checked')?.value || 'medium';
     const mix  = document.querySelector('input[name="mix"]:checked')?.value  || 'clean';
     const entry = { id: Date.now(), people: selected, time: time || new Date().toISOString().slice(0,16), note, size, mix };
+
+    const res = await fetch('/api/logs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry),
+    });
+    if (!res.ok) { showToast('Error saving — try again.'); return; }
+
     logs.unshift(entry);
-    await save();
     // Reset form
     document.querySelectorAll('#people-grid input').forEach(i => { i.checked = false; });
     document.querySelectorAll('#people-grid label.person-chip').forEach(l => l.classList.remove('selected'));
@@ -649,17 +656,10 @@
   }
 
   async function deleteLog(id) {
+    const res = await fetch(`/api/logs?id=${id}`, { method: 'DELETE' });
+    if (!res.ok) { showToast('Error deleting — try again.'); return; }
     logs = logs.filter(l => l.id !== id);
-    await save();
     render();
-  }
-
-  async function save() {
-    await fetch('/api/logs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(logs),
-    });
   }
 
   // ---- RENDER ----
@@ -916,7 +916,9 @@
   (async () => {
     try {
       const res = await fetch('/api/logs');
-      logs = await res.json();
+      const data = await res.json();
+      // Supabase returns people as a parsed array; normalize just in case
+      logs = data.map(l => ({ ...l, people: Array.isArray(l.people) ? l.people : JSON.parse(l.people || '[]') }));
     } catch {
       logs = [];
     }

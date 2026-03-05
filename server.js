@@ -52,6 +52,17 @@ const server = http.createServer((req, res) => {
   res.end();
 });
 
-server.listen(PORT, () => {
-  console.log(`Rejs Borzy running at http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  const os = require('os');
+  const nets = os.networkInterfaces();
+  const ips = [];
+  for (const iface of Object.values(nets)) {
+    for (const addr of iface) {
+      if (addr.family === 'IPv4' && !addr.internal) ips.push(addr.address);
+    }
+  }
+  console.log(`\nRejs Borzy is running!\n`);
+  console.log(`  Local:   http://localhost:${PORT}`);
+  ips.forEach(ip => console.log(`  Network: http://${ip}:${PORT}  <-- use this on other devices`));
+  console.log(`\nData saved to: ${DATA_FILE}\n`);
 });
